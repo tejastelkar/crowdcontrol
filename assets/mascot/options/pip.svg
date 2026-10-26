@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="chick" cx="0.4" cy="0.35" r="0.75"><stop offset="0" stop-color="#fff3a0"/><stop offset="0.55" stop-color="#ffd23a"/><stop offset="1" stop-color="#f2a812"/></radialGradient>
+    <linearGradient id="helm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5ca8ff"/><stop offset="1" stop-color="#1f5fd0"/></linearGradient>
+  </defs>
+  <ellipse cx="256" cy="480" rx="130" ry="18" fill="#000" opacity="0.18"/>
+  <path d="M206 440 l-22 34 M206 440 l0 38 M206 440 l22 34" stroke="#f08a12" stroke-width="12" stroke-linecap="round"/>
+  <path d="M306 440 l-22 34 M306 440 l0 38 M306 440 l22 34" stroke="#f08a12" stroke-width="12" stroke-linecap="round"/>
+  <ellipse cx="256" cy="300" rx="170" ry="160" fill="url(#chick)" stroke="#8a5a06" stroke-width="11"/>
+  <path d="M92 300 Q 50 330 70 380 Q 110 360 120 320 Z" fill="#ffc21a" stroke="#8a5a06" stroke-width="9" stroke-linejoin="round"/>
+  <path d="M420 300 Q 462 330 442 380 Q 402 360 392 320 Z" fill="#ffc21a" stroke="#8a5a06" stroke-width="9" stroke-linejoin="round"/>
+  <ellipse cx="256" cy="370" rx="96" ry="66" fill="#fff8d6" opacity="0.9"/>
+  <path d="M96 196 Q 256 40 416 196 L 432 214 Q 256 176 80 214 Z" fill="url(#helm)" stroke="#0f2a6b" stroke-width="11" stroke-linejoin="round"/>
+  <rect x="70" y="200" width="372" height="30" rx="14" fill="#1a4fb5" stroke="#0f2a6b" stroke-width="9"/>
+  <path d="M256 92 L266 120 L296 121 L272 139 L281 168 L256 151 L231 168 L240 139 L216 121 L246 120 Z" fill="#ffd23a" stroke="#8a5a06" stroke-width="6" stroke-linejoin="round"/>
+  <g stroke="#3a2a06" stroke-width="8"><ellipse cx="200" cy="282" rx="38" ry="44" fill="#fff"/><ellipse cx="312" cy="282" rx="38" ry="44" fill="#fff"/></g>
+  <circle cx="207" cy="291" r="24" fill="#14213d"/><circle cx="305" cy="291" r="24" fill="#14213d"/>
+  <circle cx="215" cy="280" r="9" fill="#fff"/><circle cx="313" cy="280" r="9" fill="#fff"/>
+  <path d="M226 330 Q 256 312 286 330 Q 256 372 226 330 Z" fill="#ff8f1f" stroke="#8a4a06" stroke-width="8" stroke-linejoin="round"/>
+  <ellipse cx="150" cy="340" rx="24" ry="14" fill="#ff8aa8" opacity="0.6"/><ellipse cx="362" cy="340" rx="24" ry="14" fill="#ff8aa8" opacity="0.6"/>
+</svg>

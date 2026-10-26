@@ -1,0 +1,6 @@
+.godot/
+build/
+/android/
+.code-review-graph/
+*.tmp
+.DS_Store

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="star" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffbd0"/><stop offset="1" stop-color="#ffc414"/>
+    </linearGradient>
+  </defs>
+  <!-- antenna -->
+  <path d="M256 128 C 252 96, 268 74, 286 58" fill="none" stroke="#1450b8" stroke-width="12" stroke-linecap="round"/>
+  <path d="M290 12 L302 42 L334 44 L309 64 L318 95 L290 77 L262 95 L271 64 L246 44 L278 42 Z" fill="url(#star)" stroke="#d68a06" stroke-width="7" stroke-linejoin="round"/>
+</svg>
