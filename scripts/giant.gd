@@ -1,11 +1,20 @@
 class_name Giant
 extends Node3D
-## A big unit with HP. Red giants are animated slimes and bosses are an animated
-## dragon (Quaternius, CC0); the blue champion is built from parts so its arms
-## and legs can animate.
+## A big unit with HP. Red giants are animated slimes, mini-bosses an animated skeleton and
+## bosses an animated dragon (Quaternius, CC0); the blue champion is built from parts so its
+## arms and legs can animate.
 
 const MONSTERS := "res://assets/models/monsters/%s.fbx"
-## The slime and dragon models stay loaded, so a giant never re-reads its file mid-fight.
+## The red monsters: each one's model and animations, its height (and how high it flies), the
+## turn that faces it to the camera, how fast it comes down the lane and how wide it hits.
+const KINDS := {
+	"giant": {"model": "Slime", "anims": "Armature|Slime_", "move": "Walk", "height": 2.4, "fly": 0.0, "turn": 180.0, "speed": 1.7, "radius": 1.25},
+	"mini_boss": {"model": "Skeleton", "anims": "SkeletonArmature|Skeleton_", "move": "Running", "height": 5.0, "fly": 0.0, "turn": 0.0, "speed": 1.3, "radius": 1.7},
+	"boss": {"model": "Dragon", "anims": "DragonArmature|Dragon_", "move": "Flying", "height": 6.5, "fly": 0.8, "turn": -90.0, "speed": 1.0, "radius": 2.2},
+}
+## How much faster than its model's own animation a mini-boss climbs out of the ground.
+const RISE_SPEED := 1.6
+## The monster models stay loaded, so a giant never re-reads its file mid-fight.
 static var _models := {}
 
 var hp := 30
@@ -14,6 +23,9 @@ var radius := 1.2
 var dead := false
 var is_champion := false
 var is_boss := false
+var is_mini_boss := false
+## Seconds it stands still before it sets off: a mini-boss first climbs out of the ground.
+var hold := 0.0
 
 var _size := 1.25
 var _label: Label3D
@@ -33,17 +45,22 @@ var _monster: Node3D
 var _overlay: StandardMaterial3D
 
 
-func setup(p_hp: int, font: Font, champion: bool, boss := false) -> void:
+## kind: a red monster from KINDS ("giant", "mini_boss" or "boss"); a champion is your own.
+func setup(p_hp: int, font: Font, champion: bool, kind := "giant") -> void:
 	hp = p_hp
 	is_champion = champion
-	is_boss = boss
-	speed = 4.2 if champion else (1.0 if boss else 1.7)
-	radius = 1.0 if champion else (2.2 if boss else 1.25)
-	_size = 1.0 if champion else (2.1 if boss else 1.25)
 	_t = randf() * TAU
 	if not champion:
-		_build_monster(font, boss)
+		is_boss = kind == "boss"
+		is_mini_boss = kind == "mini_boss"
+		var look: Dictionary = KINDS[kind]
+		speed = look.speed
+		radius = look.radius
+		_build_monster(font, look)
 		return
+	speed = 4.2
+	radius = 1.0
+	_size = 1.0
 
 	var body_c := Color(0.2, 0.55, 1.0) if champion else Color(1.0, 0.86, 0.16)
 	var accent := Color(0.95, 0.95, 1.0) if champion else Color(0.93, 0.2, 0.22)
@@ -73,13 +90,7 @@ func setup(p_hp: int, font: Font, champion: bool, boss := false) -> void:
 		[MeshKit.box(Vector3(0.3, 0.07, 0.08)), MeshKit.xf(Vector3(-0.28, 1.1, 0.72 * face), Vector3.ONE, Vector3(0, 0, -16 * face)), dark],
 		[MeshKit.box(Vector3(0.3, 0.07, 0.08)), MeshKit.xf(Vector3(0.28, 1.1, 0.72 * face), Vector3.ONE, Vector3(0, 0, 16 * face)), dark],
 	]
-	if champion or boss:
-		body_parts.append([MeshKit.cylinder(0.45, 0.55, 0.35, 12), MeshKit.xf(Vector3(0, 1.4, 0)), gold])
-	if boss:
-		for i in 5:
-			var a := i * TAU / 5.0
-			body_parts.append([MeshKit.cylinder(0.0, 0.11, 0.32, 6), MeshKit.xf(Vector3(cos(a) * 0.42, 1.72, sin(a) * 0.42)), gold])
-		body_parts.append([MeshKit.sphere(0.09, 8, 5), MeshKit.xf(Vector3(0, 1.45, 0.48)), Color(0.3, 0.9, 1.0)])
+	body_parts.append([MeshKit.cylinder(0.45, 0.55, 0.35, 12), MeshKit.xf(Vector3(0, 1.4, 0)), gold])
 	MeshKit.instance(MeshKit.merge(body_parts), _mat, _body)
 
 	var arm := MeshKit.merge([
@@ -97,7 +108,7 @@ func setup(p_hp: int, font: Font, champion: bool, boss := false) -> void:
 
 	_label = Label3D.new()
 	_label.font = font
-	_label.font_size = 200 if boss else 150
+	_label.font_size = 150
 	_label.pixel_size = 0.004
 	_label.outline_size = 34
 	_label.outline_modulate = Color(0.05, 0.15, 0.4) if champion else Color(0.4, 0.05, 0.05)
@@ -118,10 +129,10 @@ func setup(p_hp: int, font: Font, champion: bool, boss := false) -> void:
 	tw.chain().tween_property(_model, "scale", Vector3.ONE * _size, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
-## Reads both monster models once (main calls this at start-up).
+## Reads the monster models once (main calls this at start-up).
 static func load_models() -> void:
-	for n in ["Slime", "Dragon"]:
-		_model_scene(n)
+	for k in KINDS:
+		_model_scene(KINDS[k].model)
 
 
 static func _model_scene(name: String) -> PackedScene:
@@ -130,20 +141,19 @@ static func _model_scene(name: String) -> PackedScene:
 	return _models[name]
 
 
-func _build_monster(font: Font, boss: bool) -> void:
-	var name := "Dragon" if boss else "Slime"
-	_anim_prefix = "DragonArmature|Dragon_" if boss else "Armature|Slime_"
+func _build_monster(font: Font, look: Dictionary) -> void:
+	_anim_prefix = look.anims
 	_model = Node3D.new()
 	add_child(_model)
-	_monster = _model_scene(name).instantiate()
+	_monster = _model_scene(look.model).instantiate()
 	_model.add_child(_monster)
-	# scale to a target height, standing on the ground, facing the camera
+	# scale to a target height, standing on the ground (the dragon flies), facing the camera
 	var box := _model_aabb(_monster)
-	var target_h := 6.5 if boss else 2.4
+	var target_h: float = look.height
 	var k := target_h / maxf(0.001, box.size.y)
 	_monster.scale = Vector3.ONE * k
-	_monster.position = Vector3(-box.get_center().x * k, -box.position.y * k + (0.8 if boss else 0.0), -box.get_center().z * k)
-	_monster.rotation_degrees.y = -90.0 if boss else 180.0  # turn each model to face the camera
+	_monster.position = Vector3(-box.get_center().x * k, -box.position.y * k + look.fly, -box.get_center().z * k)
+	_monster.rotation_degrees.y = look.turn
 	_overlay = StandardMaterial3D.new()
 	_overlay.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_overlay.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -151,6 +161,7 @@ func _build_monster(font: Font, boss: bool) -> void:
 	var palette := {
 		"Main": Color(0.92, 0.14, 0.16), "Belly": Color(1.0, 0.78, 0.22), "Wings": Color(0.45, 0.06, 0.14),
 		"Claws": Color(0.96, 0.92, 0.82), "Eyes": Color(0.05, 0.05, 0.08), "Body": Color(0.98, 0.2, 0.24),
+		"Skeleton": Color(0.95, 0.22, 0.22),
 	}
 	for mi: MeshInstance3D in _monster.find_children("*", "MeshInstance3D", true, false):
 		mi.material_overlay = _overlay
@@ -162,26 +173,35 @@ func _build_monster(font: Font, boss: bool) -> void:
 			var key: String = m.resource_name
 			if palette.has(key):
 				m2.albedo_color = palette[key]
-			m2.roughness = 0.18 if name == "Slime" else 0.4
+			m2.roughness = 0.18 if look.model == "Slime" else 0.4
 			m2.metallic_specular = 0.7
 			m2.rim_enabled = true
 			m2.rim = 0.35
 			m2.rim_tint = 0.4
 			mi.set_surface_override_material(si, m2)
 	_anim = _monster.find_child("AnimationPlayer", true, false)
-	_play("Flying" if boss else "Walk", true)
 	_label = Label3D.new()
 	_label.font = font
-	_label.font_size = 220 if boss else 160
+	_label.font_size = 220 if is_boss else (190 if is_mini_boss else 160)
 	_label.pixel_size = 0.004
 	_label.outline_size = 38
 	_label.outline_modulate = Color(0.4, 0.05, 0.05)
-	_label.position = Vector3(0, target_h + (1.3 if boss else 0.5), 0)
+	_label.position = Vector3(0, target_h + (1.3 if is_boss else (1.0 if is_mini_boss else 0.5)), 0)
 	_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_label.no_depth_test = true
 	_label.shaded = false
 	_label.text = str(hp)
 	add_child(_label)
+	if is_mini_boss:
+		# entrance: it climbs out of the ground (standing still meanwhile), then runs at you
+		var rise: String = _anim_prefix + "Spawn"
+		hold = _anim.get_animation(rise).length / RISE_SPEED
+		_anim.play(rise, 0.0, RISE_SPEED)
+		_anim.animation_finished.connect(func(_a):
+			if not dead:
+				_play(look.move, true), CONNECT_ONE_SHOT)
+		return
+	_play(look.move, true)
 	# entrance: drop in and land with a squash
 	_model.position.y = 3.0
 	_model.scale = Vector3.ONE * 0.6

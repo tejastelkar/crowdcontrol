@@ -65,7 +65,7 @@ Fire your cannon, multiply your army and overrun the enemy castle!
 
 Hold to shoot and drag to aim. Send your crowd through + gates and the rare x2 and x3 gates to grow a huge army,
 dodge the sneaky ÷ traps, and crash into the red castle before their army gets through. Charge up
-your Champion to smash everything in its path, and face giant slimes and dragon bosses.
+your Champion to smash everything in its path, and face giant slimes, skeleton mini-bosses and dragon bosses.
 
 Meet Bloop, your cheerful guide, who teaches you the ropes, cheers your wins and loves dressing up!
 
@@ -75,7 +75,7 @@ FEATURES
 • Unlock bigger cannons as you play: Twin Blaster, Triple Threat, Mega Cannon and the 4-barrel Titan
 • Break barrels for a bigger cannon, while the red army keeps coming
 • Roads that split, swing wide and cross: pick your road from level 15
-• Gates, traps, giants and dragon boss fights
+• Gates, traps, giants, skeleton mini-bosses and 8 dragon boss fights
 • 40 hand-made levels in 4 worlds: Meadow, Desert, Snow and Volcano, up to the Dragon King
 • Level map with stars to collect on every level
 • Dress up Bloop: party hats, crowns, wizard hats, superhero cape and more

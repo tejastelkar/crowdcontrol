@@ -50,11 +50,13 @@ var _attempts := {}
 var _until_level := 0
 var _world_root: Node3D
 var _world_key := ""
-var _boss_pending := false
+var _boss_pending := ""  # the level's boss still to come ("boss", "mini_boss" or "")
 var _casual_bot := false
 var _hype_next := 0
 var _last_drag_ms := 0
 var _aim_marker: Node3D
+## The mini-boss's colour: its banner and the word over it when it comes.
+const MINI_BOSS_COLOR := Color(1.0, 0.62, 0.22)
 const HYPE := [[100, "AWESOME!", Color(0.3, 0.7, 1.0)], [250, "INCREDIBLE!", Color(0.6, 0.35, 1.0)],
 	[500, "UNSTOPPABLE!", Color(1.0, 0.5, 0.2)], [1000, "LEGENDARY!", Color(1.0, 0.78, 0.15)]]
 var _drag_dist := 0.0
@@ -262,7 +264,7 @@ func _load_level(n := -1) -> void:
 	_drag_dist = 0.0
 	_tip_id = ""
 	hud.hide_tip()
-	hud.show_menu(level_num, Save.coins, Levels.is_boss(level_num), level.name)
+	hud.show_menu(level_num, Save.coins, Levels.boss_kind(level_num), level.name)
 	for id in Stickers.check_new():
 		hud.show_new_sticker(id)
 	if Save.player_name == "":
@@ -330,7 +332,7 @@ func _start_level() -> void:
 	state = State.PLAY
 	_wave_t = level.first_wave
 	_giant_t = level.giant_interval * 0.6
-	_boss_pending = level.boss_hp > 0
+	_boss_pending = Levels.boss_kind(level_num)
 	_help = Levels.relief(Save.fails_on(level_num))
 	# the red army is already on the march: the fight starts with your first shots
 	crowd.spawn_red_squad(int(level.opening * (0.5 if Save.easy else 1.0) * (1.0 - _help)), level.opening_z,
@@ -347,6 +349,8 @@ func _start_level() -> void:
 		hud.show_banner("FINAL BOSS!", Color(1.0, 0.45, 0.4), sub)
 	elif Levels.is_boss(level_num):
 		hud.show_banner("BOSS FIGHT!", Color(1.0, 0.45, 0.4), sub)
+	elif Levels.is_mini_boss(level_num):
+		hud.show_banner("MINI-BOSS!", MINI_BOSS_COLOR, sub)
 	else:
 		hud.show_banner("LEVEL %d" % level_num, Color.WHITE, sub)
 
@@ -512,9 +516,9 @@ func _update_spawns(delta: float) -> void:
 		for i in Levels.wave_count(level, _elapsed, hurt, Save.easy, _help):
 			var hp := CrowdSim.BRUTE_HP if randf() < brute else 1
 			crowd.spawn_red(randf_range(-LANE_HALF + 0.3, LANE_HALF - 0.3), BASE_Z + 2.2 + randf_range(0.0, 2.0), hp)
-	if _boss_pending and _elapsed > 1.5:
-		_boss_pending = false
-		_spawn_giant(true)
+	if _boss_pending != "" and _elapsed > 1.5:
+		_spawn_giant(_boss_pending)
+		_boss_pending = ""
 	if level.giant_interval > 0.0:
 		_giant_t -= delta
 		if _giant_t <= 0.0:
@@ -522,17 +526,24 @@ func _update_spawns(delta: float) -> void:
 			_spawn_giant()
 
 
-func _spawn_giant(boss := false) -> void:
+## kind: "giant", or the level's boss ("boss", a dragon, or "mini_boss", a giant skeleton).
+func _spawn_giant(kind := "giant") -> void:
 	var g := Giant.new()
 	_level_root.add_child(g)
+	var boss := kind != "giant"
 	g.position = Vector3(0.0 if boss else randf_range(-1.5, 1.5), 0, BASE_Z + 3.5)
-	g.setup(level.boss_hp if boss else level.giant_hp, font, false, boss)
+	g.setup(level[kind + "_hp"], font, false, kind)
 	_giants.append(g)
 	fx.sfx("boom" if boss else "base_hit", 0.0, 0.0)
-	if boss:
+	if kind == "boss":
 		fx.shake(0.3)
 		fx.buzz("heavy")
 		fx.float_text(g.position + Vector3(0, 6.5, 0), "BOSS!", Color(1, 0.2, 0.2), 170)
+	elif kind == "mini_boss":
+		fx.shake(0.2)
+		fx.buzz("heavy")
+		fx.puff(g.position + Vector3(0, 0.4, 0), Color(0.75, 0.62, 0.45), true)  # the ground breaks open
+		fx.float_text(g.position + Vector3(0, 5.0, 0), "MINI-BOSS!", MINI_BOSS_COLOR, 150)
 
 
 func _fire_champion() -> void:
@@ -555,11 +566,13 @@ func _update_bigs(delta: float, playing: bool) -> void:
 		if not is_instance_valid(g) or g.dead:
 			_giants.erase(g)
 			continue
-		if playing:
+		if playing and g.hold > 0.0:
+			g.hold -= delta  # a mini-boss climbing out of the ground stands still
+		elif playing:
 			g.position.z += g.speed * delta
-			# giants (and the dragon) drift toward the cannon, so they always meet your crowd
+			# giants (and the bosses) drift toward the cannon, so they always meet your crowd
 			g.position.x = move_toward(g.position.x, cannon.position.x, 0.6 * delta)
-			g.position.x = road.clamp_x(g.position.x, g.position.z)  # giants and the dragon go round islands too
+			g.position.x = road.clamp_x(g.position.x, g.position.z)  # giants and the bosses go round islands too
 		var k := crowd.kill_blue(g.position.x, g.position.z, g.radius, g.hp)
 		if k > 0:
 			g.damage(k)
@@ -825,9 +838,13 @@ func _update_tutorial() -> void:
 			return
 	for g in _giants:
 		if is_instance_valid(g) and not g.dead and g.position.z > BASE_Z + 7.0:
-			var id := "boss" if g.is_boss else "giant"
-			var text := "BEAT THE BOSS BEFORE\nIT REACHES YOU!" if g.is_boss else "GIANTS TAKE\nMANY HITS!"
-			if _tip(id, text, g.position + Vector3(0, 3.5 * (2.0 if g.is_boss else 1.0), 0), true, "wow"):
+			var id := "boss" if g.is_boss else ("mini_boss" if g.is_mini_boss else "giant")
+			var text := "GIANTS TAKE\nMANY HITS!"
+			if g.is_boss:
+				text = "BEAT THE BOSS BEFORE\nIT REACHES YOU!"
+			elif g.is_mini_boss:
+				text = "A MINI-BOSS! STOP IT\nBEFORE IT REACHES YOU!"
+			if _tip(id, text, g.position + Vector3(0, 3.5 * (2.0 if g.is_boss else (1.5 if g.is_mini_boss else 1.0)), 0), true, "wow"):
 				return
 	for c in _champions:
 		if is_instance_valid(c) and not c.dead and c.position.z < CANNON_Z - 4.0:

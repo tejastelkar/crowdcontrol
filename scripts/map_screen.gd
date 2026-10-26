@@ -254,10 +254,11 @@ func _add_card(y: float, col: Color, small_text: String, big_text: String, tag_t
 
 func _add_stop(i: int) -> void:
 	var boss := Levels.is_boss(i)
+	var mini := Levels.is_mini_boss(i)
 	var done := i < _current
 	var cur := i == _current
 	var wi := Levels.world_index(i)
-	var sz := NODE * (1.22 if boss else 1.0)
+	var sz := NODE * (1.22 if boss else (1.1 if mini else 1.0))
 	var col: Color = LOCKED
 	if done:
 		col = GOLD if boss else WORLD_COLORS[wi]
@@ -282,7 +283,8 @@ func _add_stop(i: int) -> void:
 		b.add_theme_stylebox_override(state, sb)
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	var icon := StopIcon.new()
-	icon.kind = "lock" if not (done or cur) else ("crown" if boss else ("check" if done else "star"))
+	icon.kind = "lock" if not (done or cur) else ("crown" if boss else ("skull" if mini else ("check" if done else "star")))
+	icon.tint = col
 	icon.stars = Save.stars.get(i, 0) if done else 0
 	icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -439,6 +441,7 @@ class MapContent extends Control:
 class StopIcon extends Control:
 	var kind := "star"
 	var stars := 0
+	var tint := Color.WHITE  # the stop's own colour, for the holes in a skull
 
 	func _draw() -> void:
 		var c := Vector2(size.x * 0.5, size.y * 0.44)
@@ -454,6 +457,16 @@ class StopIcon extends Control:
 				var pts := PackedVector2Array([b + Vector2(-w, 0), b + Vector2(-w, -w * 1.1), b + Vector2(-w * 0.45, -w * 0.5),
 					b + Vector2(0, -w * 1.3), b + Vector2(w * 0.45, -w * 0.5), b + Vector2(w, -w * 1.1), b + Vector2(w, 0)])
 				draw_colored_polygon(pts, Color.WHITE)
+			"skull":
+				# a mini-boss's stop
+				var hole := tint.darkened(0.35)
+				draw_circle(c + Vector2(0, -r * 0.18), r * 0.86, Color.WHITE)
+				draw_rect(Rect2(c + Vector2(-r * 0.5, r * 0.3), Vector2(r * 1.0, r * 0.58)), Color.WHITE)
+				draw_circle(c + Vector2(-r * 0.34, -r * 0.08), r * 0.25, hole)
+				draw_circle(c + Vector2(r * 0.34, -r * 0.08), r * 0.25, hole)
+				draw_colored_polygon(PackedVector2Array([c + Vector2(0, r * 0.16), c + Vector2(-r * 0.13, r * 0.38), c + Vector2(r * 0.13, r * 0.38)]), hole)
+				for k in [-1, 0, 1]:
+					draw_line(c + Vector2(k * r * 0.22, r * 0.6), c + Vector2(k * r * 0.22, r * 0.88), hole, r * 0.09)
 			"lock":
 				var col := Color(0.62, 0.64, 0.7)
 				draw_arc(c + Vector2(0, -r * 0.2), r * 0.5, PI, TAU, 18, col, r * 0.28, true)

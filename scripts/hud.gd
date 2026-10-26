@@ -244,10 +244,19 @@ void fragment() {
 
 # ---------------------------------------------------------------- public API
 
-## The menu before a level: its number up top and its name under the game's title.
-func show_menu(level: int, coins: int, boss := false, level_name := "") -> void:
-	_level_label.text = ("BOSS LEVEL %d" if boss else "LEVEL %d") % level
-	_level_label.label_settings.font_color = Color(1.0, 0.45, 0.4) if boss else Color.WHITE
+## The menu before a level: its number up top and its name under the game's title. boss: the
+## level's boss (Levels.boss_kind), which the number's pill names.
+func show_menu(level: int, coins: int, boss := "", level_name := "") -> void:
+	match boss:
+		"boss":
+			_level_label.text = "BOSS LEVEL %d" % level
+			_level_label.label_settings.font_color = Color(1.0, 0.45, 0.4)
+		"mini_boss":
+			_level_label.text = "MINI-BOSS %d" % level  # "MINI-BOSS LEVEL 38" crowds the coins on a phone
+			_level_label.label_settings.font_color = Color(1.0, 0.62, 0.22)
+		_:
+			_level_label.text = "LEVEL %d" % level
+			_level_label.label_settings.font_color = Color.WHITE
 	_fit_level_pill()
 	_name_label.text = level_name
 	_name_label.visible = level_name != ""

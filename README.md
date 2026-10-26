@@ -25,11 +25,18 @@ Bloop outfits and backgrounds in the shop.
 - From level 8, brutes (bigger red runners) take three of your units each.
 - Levels 1-3 are gentle (the red army ramps up to full size by level 5); trap levels whose best
   path barely grows the crowd get a smaller army and a softer castle; boss levels swap the giants
-  for the dragon and send a slightly smaller army. Castles are softer from level 5
+  for the dragon and send a slightly smaller army, and mini-boss levels swap them for a giant
+  skeleton. Castles are softer from level 5
   (`CASTLE_SOFT`), because crowds grow less now that x2/x3 gates are rare.
 - 40 levels in four worlds of ten (Meadow, Desert, Snow, Volcano). Every 5th level is a boss
-  level, and level 40, the Dragon King, is the final boss. Beating it finishes the game: the map
-  shows the end, and PLAY replays the first level still short of 3 stars.
+  level (a dragon), and level 40, the Dragon King, is the final boss. Beating it finishes the
+  game: the map shows the end, and PLAY replays the first level still short of 3 stars.
+- Mini-bosses: halfway between two dragons (levels 8, 13, 18, 23, 28, 33 and 38) a giant skeleton
+  climbs out of the ground in front of the castle and runs at your cannon. It has about half the
+  next dragon's HP and comes instead of the usual giants; like any giant, it loses you the level
+  if it reaches your line, and it falls with the castle. Its menu says MINI-BOSS, the map
+  marks it with a skull, it pays 1.5x the coins, and 3 stars take 35 s (28 s on a level, 42 s on
+  a boss level).
 - Every level is designed by hand (`DESIGNS` in `scripts/levels.gd`): its name (on the menu and
   the level banner), its road, its gates and its dials (a smaller army after a boss, fast reds,
   an ambush, a giant parade). The guide to all 40 is [`docs/LEVELS.md`](docs/LEVELS.md).
@@ -38,13 +45,14 @@ Bloop outfits and backgrounds in the shop.
   straight road.
   Everything that moves stays on the road (runners slide along islands, so where you aim picks
   your road); each road of a fork has its own gate, and reds come down both roads.
-- First-time tips teach aiming, gates, the red army, traps, giants, bosses,
+- First-time tips teach aiming, gates, the red army, traps, giants, bosses, mini-bosses,
   the champion and each new cannon (stored in the save, shown once each).
 - Losing still pays a few coins, and each loss in a row on the same level makes its red army
   12% smaller (up to 40%; a win resets it), so a hard level never becomes a wall.
 - Level map: a winding road through the worlds. Finished levels show 1-3 stars (by how
-  fast you won), the current level pulses, later ones are locked, bosses wear a crown, and a
-  card after level 40 marks the end. Old levels can be replayed for stars (half coins).
+  fast you won), the current level pulses, later ones are locked, bosses wear a crown (mini-bosses
+  a skull), and a card after level 40 marks the end. Old levels can be replayed for stars (half
+  coins).
 - Background music loop, with separate Sound, Music and Vibration switches in Settings.
 - Bloop the mascot (`assets/mascot/*.svg`, `scripts/mascot.gd`) guides the tutorial: slides in,
   types out each tip while talking, and highlights what it's about. Bloop also cheers on
@@ -117,7 +125,7 @@ Publishing on the App Store needs a paid Apple Developer Program membership; see
 | `scripts/crowd_sim.gd` | Every small unit: movement, gates, clashes, drawn as 2 MultiMeshes |
 | `scripts/unit.gdshader` | Unit colours and run cycle (legs, arms, bob, lean) |
 | `scripts/gate.gdshader` | Gate glass with glowing edges and moving shine |
-| `scripts/levels.gd` | The 40 levels (`DESIGNS`: name, road, gates, dials), bosses, worlds and each level's numbers |
+| `scripts/levels.gd` | The 40 levels (`DESIGNS`: name, road, gates, dials), bosses and mini-bosses, worlds and each level's numbers |
 | `scripts/road.gd` | Each level's road shape (straight, island split, wide fork, figure-8) that everything stays on |
 | `scripts/hud.gd` | All menus and HUD (built in code) |
 | `scripts/map_screen.gd` | The level road map |
@@ -136,7 +144,7 @@ Publishing on the App Store needs a paid Apple Developer Program membership; see
 | What | Source | License |
 |---|---|---|
 | Castle, flags, ballistas (`assets/models/castle`, palette recoloured red) | Kenney Castle Kit | CC0 |
-| Dragon boss and slime giants (`assets/models/monsters`) | Quaternius Animated Monster Pack | CC0 |
+| Dragon bosses, skeleton mini-bosses and slime giants (`assets/models/monsters`) | Quaternius Animated Monster Pack | CC0 |
 | Clicks, impacts and UI sounds (`assets/sfx/kenney`) | Kenney Impact Sounds, Interface Sounds | CC0 |
 | Font Lilita One | Google Fonts | SIL Open Font License |
 
@@ -204,8 +212,12 @@ godot --path . --resolution 720x1560 --write-movie /tmp/frames/f.png --fixed-fps
   bot, which doesn't read the gates, starts failing at level 8 and is never stuck: at most 4 tries
   on any level and 5 on the Dragon King (the loss relief always gets it through). With Easy Mode
   on, a player who just holds the button and lets the aim helper steer clears levels 1-20 on the
-  first try. Shaped roads send `SHAPED_ARMY` of the red army, and boss levels never get the wide
-  fork. Tune a level with its dials in `DESIGNS`, then run each bot from level 1.
+  first try. Shaped roads send `SHAPED_ARMY` of the red army, and boss and mini-boss levels never
+  get the wide fork. Tune a level with its dials in `DESIGNS`, then run each bot from level 1.
+- Balance with the mini-bosses (26 Oct 2026, levels 8-40): the aiming bot still wins every level
+  on the first try (about 31 s a level), the casual bot needs 1-2 tries on a mini-boss level and
+  at most 4 on any level (the skeleton never gets through), and Easy Mode clears levels 8, 13 and
+  18 on the first try.
 - The bots write to the save file. To leave your own progress alone, run them in a copy of the
   project with a different `config/name` in its `project.godot` (that gives it its own save), and
   run at most two Godot processes at once.
@@ -213,7 +225,7 @@ godot --path . --resolution 720x1560 --write-movie /tmp/frames/f.png --fixed-fps
 ## Regression tests
 
 ```sh
-godot --headless --path . res://tests/tests.tscn      # 1766 checks; exit code 1 on failure
+godot --headless --path . res://tests/tests.tscn      # 1843 checks; exit code 1 on failure
 godot --headless --path . --fixed-fps 60 -- --autoplay --until-level=41   # balance bot
 ```
 

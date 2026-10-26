@@ -1,9 +1,10 @@
 class_name Levels
 extends RefCounted
 ## The game's 40 levels, in four worlds of ten (Meadow, Desert, Snow, Volcano), each one designed
-## by hand with its own name, road and gates (DESIGNS). Every 5th level is a boss level, and
-## beating level 40 finishes the game. The numbers (castle HP, red army, giants) grow with the
-## level and the cannon you bring; each level's own dials shape it on top of that.
+## by hand with its own name, road and gates (DESIGNS). Every 5th level is a boss level (a
+## dragon), halfway between two dragons a mini-boss comes (a giant skeleton), and beating level
+## 40 finishes the game. The numbers (castle HP, red army, giants) grow with the level and the
+## cannon you bring; each level's own dials shape it on top of that.
 
 const LANE_HALF := 3.8
 const WORLDS := ["MEADOW", "DESERT", "SNOW", "VOLCANO"]
@@ -17,6 +18,17 @@ static var _paths := {}
 
 static func is_boss(n: int) -> bool:
 	return n % 5 == 0
+
+
+## A mini-boss level: halfway between two dragons (8, 13, 18 ... 38). The first five levels are
+## for learning, so the first one waits until after the first dragon.
+static func is_mini_boss(n: int) -> bool:
+	return n % 5 == 3 and n > 5
+
+
+## The boss level n brings: "boss" (a dragon), "mini_boss" (a giant skeleton) or "" (none).
+static func boss_kind(n: int) -> String:
+	return "boss" if is_boss(n) else ("mini_boss" if is_mini_boss(n) else "")
 
 
 static func world_index(n: int) -> int:
@@ -44,10 +56,10 @@ static func next_to_play() -> int:
 	return COUNT
 
 
-## Stars for winning level n in the given seconds: 3 at or under par (28 s, 42 s on a boss
-## level), 2 up to par x 1.7, else 1.
+## Stars for winning level n in the given seconds: 3 at or under par (28 s, 35 s on a mini-boss
+## level, 42 s on a boss level), 2 up to par x 1.7, else 1.
 static func stars_for(n: int, seconds: float) -> int:
-	var par := 42.0 if is_boss(n) else 28.0
+	var par := 42.0 if is_boss(n) else (35.0 if is_mini_boss(n) else 28.0)
 	if seconds <= par:
 		return 3
 	return 2 if seconds <= par * 1.7 else 1
@@ -71,6 +83,7 @@ static func build(n: int) -> Dictionary:
 		"giant_interval": _giant_gap(n) if n >= 3 else 0.0,
 		"giant_hp": int((26 + n * 7) * 0.8),
 		"boss_hp": 0,
+		"mini_boss_hp": 0,
 		"reward": 40 + n * 10,  # no upgrades to buy, so coins all go to the shop
 		"name": spec.name,
 		"world": world_index(n),
@@ -86,6 +99,12 @@ static func build(n: int) -> Dictionary:
 		d.wave_size *= 0.85
 		d.opening *= 0.85
 		d.reward *= 2
+	elif is_mini_boss(n):
+		# a mini-boss level is a smaller spike: a giant skeleton with about half a dragon's HP
+		# comes instead of the usual giants, and the red army and castle stay full size
+		d.mini_boss_hp = 80 + n * 11
+		d.giant_interval = 0.0
+		d.reward = int(d.reward * 1.5)
 	if n == 1:
 		d.base_hp = 260
 	# trap levels (from level 4) whose best path barely grows the crowd get a smaller army,
@@ -106,8 +125,9 @@ static func build(n: int) -> Dictionary:
 	d.opening = clampi(int(d.opening * pot * army * ambush * pow(grow, 0.4)), 5, int(48 * ambush))
 	d.giant_hp = int(d.giant_hp * pow(grow, 0.75))
 	d.boss_hp = int(d.boss_hp * pow(grow, 0.8) * spec.get("boss", 1.0))
+	d.mini_boss_hp = int(d.mini_boss_hp * pow(grow, 0.8) * spec.get("boss", 1.0))
 	# the level's own dials: fast reds, more brutes, a parade of giants (on a boss level its
-	# giants walk with the dragon as its guards)
+	# giants walk with the dragon, or the skeleton, as its guards)
 	d.red_speed *= spec.get("speed", 1.0)
 	d.brute_share = minf(0.3, d.brute_share * spec.get("brutes", 1.0))
 	if spec.has("giants"):
@@ -239,13 +259,15 @@ static func best_path_worth(gates: Array, discount_slides := false, road: Road =
 # (÷N, a trap); move is how far a gate slides. A gate with a side (-1 left, 1 right) instead of
 # x and w fills that road where an island splits it.
 # Dials (all optional, 1.0 = as the numbers say): army (the red army), opening (the squad
-# already on the lane), castle (its HP), boss (the dragon's HP), giants (how often they come,
-# 0 = none), brutes (how many reds are brutes) and speed (how fast reds run).
+# already on the lane), castle (its HP), boss (the HP of the dragon, or of the mini-boss),
+# giants (how often they come, 0 = none), brutes (how many reds are brutes) and speed (how fast
+# reds run).
 # Rules the tests hold every level to: 2-3 gate rows at least 10 apart, an open gap in every
 # row on one lane, at most one multiplier a row, a sliding gate alone in its row, and a fork
 # row whose two roads offer different deals.
 const DESIGNS := [
 	# ---- WORLD 1: MEADOW. Learn the game: gates, choices, traps, giants, brutes, bosses.
+	# Every 5th level is a dragon; from level 8, a mini-boss comes halfway between two dragons.
 	{  # 1: learn multiplying
 		"name": "FIRST SHOT", "road": "straight",
 		"gates": [
@@ -304,7 +326,7 @@ const DESIGNS := [
 			{"z": -33.0, "x": 0.0, "w": 2.6, "op": "add", "v": 1},
 		],
 	},
-	{  # 8: high risk, high reward; the first brutes
+	{  # 8: MINI-BOSS, the first skeleton; high risk, high reward; the first brutes
 		"name": "BRUTE FORCE", "road": "straight",
 		"gates": [
 			{"z": -10.0, "x": -2.2, "w": 2.6, "op": "mul", "v": 3},
@@ -352,7 +374,7 @@ const DESIGNS := [
 			{"z": -34.0, "x": 1.9, "w": 3.0, "op": "add", "v": 1},
 		],
 	},
-	{  # 13: a sliding trap sweeps the middle row: hug an edge, or time your shots
+	{  # 13: MINI-BOSS: a sliding trap sweeps the middle row: hug an edge, or time your shots
 		"name": "QUICKSAND", "road": "straight", "castle": 0.9,
 		"gates": [
 			{"z": -10.0, "x": -2.2, "w": 2.6, "op": "add", "v": 2},
@@ -401,7 +423,7 @@ const DESIGNS := [
 			{"z": -34.0, "x": 2.2, "w": 2.6, "op": "add", "v": 2},
 		],
 	},
-	{  # 18: the first figure-8: the +3 road ends in a ÷3, the +2 road in an x3
+	{  # 18: MINI-BOSS on the first figure-8: the +3 road ends in a ÷3, the +2 road in an x3
 		"name": "THE CROSSING", "road": "eight",
 		"gates": [
 			{"z": -15.25, "side": -1, "op": "add", "v": 2},
@@ -449,7 +471,7 @@ const DESIGNS := [
 			{"z": -34.0, "x": 2.2, "w": 2.6, "op": "add", "v": 2},
 		],
 	},
-	{  # 23: an avalanche of reds is already on the lane; the left side grows fastest
+	{  # 23: MINI-BOSS: an avalanche of reds is already on the lane; the left side grows fastest
 		"name": "AVALANCHE", "road": "straight", "opening": 1.6, "army": 0.9,
 		"gates": [
 			{"z": -10.0, "x": -2.2, "w": 2.6, "op": "mul", "v": 2},
@@ -497,7 +519,7 @@ const DESIGNS := [
 			{"z": -34.0, "x": 1.9, "w": 3.0, "op": "add", "v": 2},
 		],
 	},
-	{  # 28: the +2 road ends in a trap; the x2 road ends in a +3
+	{  # 28: MINI-BOSS: the +2 road ends in a trap; the x2 road ends in a +3
 		"name": "GLACIER PASS", "road": "eight",
 		"gates": [
 			{"z": -15.25, "side": -1, "op": "mul", "v": 2},
@@ -547,7 +569,7 @@ const DESIGNS := [
 			{"z": -34.0, "x": 2.2, "w": 2.6, "op": "div", "v": 2},
 		],
 	},
-	{  # 33: brutes in the ash; two +2 gates on the left beat the lone x2
+	{  # 33: MINI-BOSS: brutes in the ash; two +2 gates on the left beat the lone x2
 		"name": "ASH RAIN", "road": "eight", "brutes": 1.5,
 		"gates": [
 			{"z": -15.25, "side": -1, "op": "add", "v": 2},
@@ -594,8 +616,8 @@ const DESIGNS := [
 			{"z": -34.0, "x": 2.2, "w": 2.6, "op": "add", "v": 3},
 		],
 	},
-	{  # 38: giants, brutes and traps; the right road is the way through
-		"name": "THE GAUNTLET", "road": "eight", "giants": 1.4, "brutes": 1.4, "army": 0.9, "castle": 0.9,
+	{  # 38: MINI-BOSS: the last skeleton, with brutes and traps; the right road is the way through
+		"name": "THE GAUNTLET", "road": "eight", "brutes": 1.4, "army": 0.9, "castle": 0.9,
 		"gates": [
 			{"z": -15.25, "side": -1, "op": "div", "v": 2},
 			{"z": -15.25, "side": 1, "op": "add", "v": 3},

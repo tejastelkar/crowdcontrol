@@ -14,12 +14,12 @@ func test_road_shapes(t) -> bool:
 	for k in Road.KINDS:
 		t.check(seen.get(k, 0) >= 4, "the %s road comes up at least 4 times from level 15 (%d)" % [k, seen.get(k, 0)])
 	# a dragon on the wide fork walks down the far road and reaches the cannon nearly whole (it
-	# walled the aiming bot on level 40 once), so boss levels never get it
+	# walled the aiming bot on level 40 once), so boss and mini-boss levels never get it
 	var boss_forks := 0
 	for n in range(15, Levels.COUNT + 1):
-		if Levels.is_boss(n) and Road.kind_for(n) == "fork":
+		if Levels.boss_kind(n) != "" and Road.kind_for(n) == "fork":
 			boss_forks += 1
-	t.check(boss_forks == 0, "boss levels never get the wide fork (%d do)" % boss_forks)
+	t.check(boss_forks == 0, "boss and mini-boss levels never get the wide fork (%d do)" % boss_forks)
 	for k in Road.KINDS:
 		var r := Road.make(k)
 		for z in [2.0, 0.0, -4.0, -8.0, -36.0, -40.0, -42.0, -44.0]:

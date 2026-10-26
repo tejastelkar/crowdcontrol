@@ -81,3 +81,12 @@ The endless generated levels (11 and up) are gone. The game now has 40 levels in
 ten, each designed by hand with its own name, road, gates and dials (`DESIGNS` in
 `scripts/levels.gd`; the guide is `docs/LEVELS.md`). Levels 1-10 keep their gates. Level 40, the
 Dragon King, is the final boss; beating it finishes the game, and the map marks the end.
+
+## Update (2026-10-26): mini-bosses
+
+A mini-boss now comes halfway between two dragons, on levels 8, 13, 18, 23, 28, 33 and 38: a
+giant skeleton (from the same Quaternius pack as the dragon and the slimes) with about half the
+next dragon's HP. It climbs out of the ground in front of the castle, then runs at the cannon,
+instead of the usual giants. The menu, the banner and a skull on the map mark its level, which
+pays 1.5x the coins and has a 35 s par for 3 stars. That makes 15 boss fights in 40 levels: 8
+dragons and 7 skeletons.

@@ -123,9 +123,9 @@ func test_potential(t) -> bool:
 
 
 func test_stars(t) -> bool:
-	# par is 28 s (42 s on a boss level): 3 stars at or under par, 2 up to par x 1.7, else 1
-	# [level, seconds to win it, stars]
-	for c in [[7, 28.0, 3], [7, 29.0, 2], [7, 47.0, 2], [7, 48.0, 1], [10, 42.0, 3], [10, 43.0, 2]]:
+	# par is 28 s (35 s on a mini-boss level, 42 s on a boss level): 3 stars at or under par, 2 up
+	# to par x 1.7, else 1. [level, seconds to win it, stars]
+	for c in [[7, 28.0, 3], [7, 29.0, 2], [7, 47.0, 2], [7, 48.0, 1], [8, 35.0, 3], [8, 36.0, 2], [10, 42.0, 3], [10, 43.0, 2]]:
 		var got: int = Levels.stars_for(c[0], c[1])
 		t.check(got == c[2], "level %d won in %.0f s earns %d stars (wanted %d)" % [c[0], c[1], got, c[2]])
 	return true
